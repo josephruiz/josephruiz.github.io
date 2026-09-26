@@ -20,7 +20,7 @@ input,select{width:100%;background:var(--panel);color:var(--text);border:1px sol
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px}
 .card{background:linear-gradient(180deg,var(--panel),#0f1729);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.2)}
 .cardTop{padding:18px 18px 10px} .title{font-size:19px;font-weight:800;line-height:1.25;margin:0 0 10px} .chips{display:flex;flex-wrap:wrap;gap:7px} .chip{background:#1c2946;border:1px solid #2b3c63;color:#c8d5ef;padding:5px 8px;border-radius:999px;font-size:12px}
-.summary{color:#d9e2f6;line-height:1.55;padding:0 18px 16px} .remember{margin:0 18px 16px;padding:12px 13px;border-left:3px solid var(--accent2);background:#0f2430;border-radius:9px;color:#d6fff5}
+.summary{color:#d9e2f6;line-height:1.62;padding:0 18px 10px}.contextline{color:var(--muted);font-size:13px;line-height:1.5;padding:0 18px 16px}.remember{margin:0 18px 16px;padding:12px 13px;border-left:3px solid var(--accent2);background:#0f2430;border-radius:9px;color:#d6fff5}.flagBadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:#13213a;border:1px solid #2b3c63;padding:5px 8px;border-radius:999px}.flagEmoji{font-size:15px;line-height:1}.analysisBox{padding:0 0 15px;color:#d9e2f6;line-height:1.6}.analysisGrid{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;font-size:14px}.metricTable{width:100%;border-collapse:collapse;margin:4px 0 14px;font-size:14px}.metricTable td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}.metricTable td:first-child{width:38%;color:var(--muted)}
 details{border-top:1px solid var(--line);padding:0 18px} summary{cursor:pointer;padding:14px 0;font-weight:700;color:#c9d6ef} .table{display:grid;grid-template-columns:150px 1fr;gap:8px 12px;padding-bottom:14px;font-size:14px} .k{color:var(--muted)} .v{color:var(--text);overflow-wrap:anywhere}
 .links{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 18px} .btn{display:inline-block;text-decoration:none;background:var(--accent);color:white;padding:9px 12px;border-radius:10px;font-weight:700;font-size:13px} .btn.secondary{background:#223251}
 .empty{padding:50px;text-align:center;color:var(--muted)} .footer{color:var(--muted);font-size:13px;padding:30px 0 60px}
@@ -61,24 +61,54 @@ unique('date').forEach(v=>dateSel.insertAdjacentHTML('beforeend',`<option value=
 [...new Set(DATA.map(x=>x.area))].sort().forEach(v=>areaSel.insertAdjacentHTML('beforeend',`<option>${v}</option>`));
 
 function esc(s){return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function metricRows(metrics){
+  const parts=(metrics||'No reportado').split(';').map(s=>s.trim()).filter(Boolean);
+  return parts.map((m,i)=>{
+    const p=m.indexOf(':');
+    const label=p>0 ? m.slice(0,p).trim() : (i===0 ? 'Resultado principal' : 'Métrica');
+    const value=p>0 ? m.slice(p+1).trim() : m;
+    return `<tr><td>${esc(label)}</td><td><b>${esc(value)}</b></td></tr>`;
+  }).join('');
+}
 function card(x){
   const code = x.code ? `<a class="btn secondary" href="${esc(x.code)}" target="_blank" rel="noopener">Código / repositorio</a>` : '';
   return `<article class="card">
     <div class="cardTop">
-      <h3 class="title">${x.flag} ${esc(x.title)}</h3>
-      <div class="chips"><span class="chip">${esc(x.country)}</span><span class="chip">${esc(x.area)}</span><span class="chip">${esc(x.modality)}</span></div>
+      <h3 class="title">${esc(x.title)}</h3>
+      <div class="chips">
+        <span class="flagBadge"><span class="flagEmoji">${x.flag}</span>${esc(x.country)}</span>
+        <span class="chip">${esc(x.area)}</span><span class="chip">${esc(x.modality)}</span>
+      </div>
     </div>
     <div class="summary">${esc(x.summary)}</div>
+    <div class="contextline"><b>${esc(x.institution)}</b> · ${esc(x.sample)} · ${esc(x.design)}</div>
     <div class="remember"><b>🧠 Lo que debes recordar:</b> ${esc(x.remember)}</div>
     <details>
-      <summary>Ver ficha técnica</summary>
+      <summary>📖 Abrir análisis completo</summary>
+      <div class="analysisBox">
+        <div class="analysisGrid">
+          <div class="k">Qué se hizo</div><div class="v">${esc(x.summary)}</div>
+          <div class="k">Dónde</div><div class="v">${x.flag} ${esc(x.country)} · ${esc(x.institution)}</div>
+          <div class="k">Población</div><div class="v">${esc(x.sample)}</div>
+          <div class="k">Diseño</div><div class="v">${esc(x.design)}</div>
+          <div class="k">Tecnología</div><div class="v">${esc(x.model)} · ${esc(x.modality)}</div>
+          <div class="k">Resultados</div><div class="v">${esc(x.metrics)}</div>
+          <div class="k">Limitación</div><div class="v">${esc(x.limitations)}</div>
+          <div class="k">Por qué importa</div><div class="v">${esc(x.remember)}</div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary>📊 Ver métricas y ficha técnica</summary>
+      <table class="metricTable">
+        <tbody>${metricRows(x.metrics)}</tbody>
+      </table>
       <div class="table">
         <div class="k">Institución</div><div class="v">${esc(x.institution)}</div>
         <div class="k">Muestra</div><div class="v">${esc(x.sample)}</div>
         <div class="k">Diseño</div><div class="v">${esc(x.design)}</div>
+        <div class="k">Modalidad</div><div class="v">${esc(x.modality)}</div>
         <div class="k">Modelo</div><div class="v">${esc(x.model)}</div>
-        <div class="k">Métricas</div><div class="v">${esc(x.metrics)}</div>
-        <div class="k">Limitaciones</div><div class="v">${esc(x.limitations)}</div>
         <div class="k">Lenguaje</div><div class="v">${esc(x.language || 'No reportado')}</div>
         <div class="k">Framework</div><div class="v">${esc(x.framework || 'No reportado')}</div>
         <div class="k">Hardware</div><div class="v">${esc(x.hardware || 'No reportado')}</div>
